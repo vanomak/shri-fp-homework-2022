@@ -11,13 +11,13 @@ export default class Api {
     }
 
     numbersBaseController = ({from, to, number}) => {
-        return {result: parseInt(number, from).toString(to)}; 
+        return {result: parseInt(number, from).toString(to)};
     }
 
     animalController = (id) => {
         const animals = ['cat', 'dog', 'bird', 'fish']
-        
-        return {result: animals[id] || 'zebra'}; 
+
+        return {result: animals[id] || 'zebra'};
     }
 
     get = curry((url, params) => {
@@ -34,18 +34,18 @@ export default class Api {
                 const urlInstance = new URL(url);
                 const host = urlInstance.host;
                 const pathname = urlInstance.pathname;
-        
+
                 const paramsFromUrl = Object.fromEntries(new URLSearchParams(urlInstance.search));
-        
+
                 const query = {
                     ...paramsFromUrl,
                     ...params,
                 };
-        
+
                 if (!this.whiteListHost.some(allowedHost => allowedHost === host)) {
                     reject('Доступны только хосты "api.tech" и "animals.tech"');
                  }
-        
+
                 switch(host) {
                     case 'api.tech':
                         if (pathname === '/numbers/base') {
@@ -63,7 +63,7 @@ export default class Api {
                         break;
                     case 'animals.tech':
                         const animalId = Number(pathname.slice(1))
-                        
+
                         if (Number.isNaN(animalId)) {
                             reject('Не получается распарсить id животного');
                         }

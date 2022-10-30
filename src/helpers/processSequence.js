@@ -14,38 +14,67 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
- import Api from '../tools/api';
+import Api from '../tools/api';
+import {allPass, andThen, gt, ifElse, lt, modulo, otherwise, partialRight, pipe, prop, tap, test} from "ramda"
 
- const api = new Api();
+const api = new Api();
 
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
+const power2 = partialRight(Math.pow, [2]);
 
- const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
+const getRemainderOf3 = partialRight(modulo, [3]);
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
+const getLength = prop('length');
 
-     wait(2500).then(() => {
-         writeLog('SecondLog')
+const convertToFloat = value => parseFloat(value);
 
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
+const roundNumber = value => Math.round(value);
 
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
- }
+const greaterThan1 = partialRight(gt, [1]);
+const lessThan11 = partialRight(lt, [11]);
+const validLength = allPass([pipe(getLength, greaterThan1), pipe(getLength, lessThan11)]);
+const isNumber = test(/\d+\.?\d?/);
+const isPositive = value => parseFloat(value) > 0;
 
- export default processSequence;
+const validateNumber = ifElse(
+  allPass([validLength, isNumber, isPositive]),
+  (value) => Promise.resolve(value),
+  () => Promise.reject('ValidationError')
+)
+
+const prepareParams = value => ({from: 10, to: 2, number: value});
+
+const numbersApi = api.get('https://api.tech/numbers/base')
+
+const getAnimal = (id) => api.get(`https://animals.tech/${id}`, {})
+
+const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
+  pipe(
+    tap(writeLog),
+    validateNumber,
+    andThen(pipe(
+      convertToFloat,
+      roundNumber,
+      tap(writeLog),
+      prepareParams,
+      numbersApi,
+      andThen(pipe(
+        prop('result'),
+        tap(writeLog),
+        getLength,
+        tap(writeLog),
+        power2,
+        tap(writeLog),
+        getRemainderOf3,
+        tap(writeLog),
+        getAnimal,
+        andThen(pipe(
+          prop('result'),
+          handleSuccess
+        ))
+      ))
+    )),
+    otherwise(handleError),
+  )(value);
+}
+
+export default processSequence;
